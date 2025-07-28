@@ -10,27 +10,27 @@ on:
       manifest_url:
         description: 'Manifest Git URL'
         required: true
-        default: 'https://github.com/DerpFest-AOSP/manifest.git'
+        default: 'https://github.com/VoltageOS/manifest.git'
       manifest_branch:
         description: 'Manifest Branch (e.g. fourteen)'
         required: true
-        default: '14'
+        default: '13'
       device_codename:
         description: 'Device Codename (e.g. violet, sweet, RMX3031)'
         required: true
-        default: 'violet'
+        default: 'Blossom'
       device_name:
         description: 'Device Name (e.g. Redmi Note 7 Pro, Realme X7 Max)'
         required: true
         default: 'Blossom'
       lunch_combo:
         description: 'Lunch Combo (e.g. lunch lineage_violet-userdebug)'
-        required: true
-        default: 'goafterlife violet-userdebug'
+        required: false
+        default: ''
       device_tree:
         description: 'Device Tree Git URL'
         required: true
-        default: 'https://github.com/ChroniX-AOSP/platform_device_xiaomi_violet.git'
+        default: 'https://github.com/Jayedkhan800/android_device_xiaomi_blossom.git -b lineage-20'
       vendor_tree:
         description: 'Vendor Tree Git URL'
         required: true
@@ -39,8 +39,15 @@ on:
         description: 'Kernel Tree Git URL'
         required: true
         default: 'https://github.com/ChroniX-AOSP/platform_kernel_xiaomi_violet.git -b surukuu-1.1'
-
-jobs:
+ 		  hardware_tree:
+        description: 'Kernel Tree Git URL'
+        required: true
+        default: 'https://github.com/LineageOS/android_hardware_mediatek.git -b lineage-20'
+  		sepolicy_tree:
+        description: 'Kernel Tree Git URL'
+        required: true
+        default: 'https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr.git -b lineage-20'
+ jobs:
   build:
     name: Build ROM
     runs-on: ubuntu-latest
@@ -89,7 +96,7 @@ jobs:
         git clone ${{ github.event.inputs.device_tree }} device/${{ github.event.inputs.device_codename }}
         git clone ${{ github.event.inputs.vendor_tree }} vendor/${{ github.event.inputs.device_codename }}
         git clone ${{ github.event.inputs.kernel_tree }} kernel/${{ github.event.inputs.device_codename }}
-
+				git clone ${{ github.event.inputs.hardware_tree }} hardware/mideatek
     - name: Generate Changelog
       run: |
         cd rom
