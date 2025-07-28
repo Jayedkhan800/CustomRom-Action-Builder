@@ -34,20 +34,20 @@ on:
       vendor_tree:
         description: 'Vendor Tree Git URL'
         required: true
-        default: 'https://github.com/ChroniX-AOSP/platform_vendor_xiaomi_violet.git'
+        default: 'https://github.com/TelegramAt25/proprietary_vendor_xiaomi_blossom.git -b lineage-20'
       kernel_tree:
         description: 'Kernel Tree Git URL'
         required: true
-        default: 'https://github.com/ChroniX-AOSP/platform_kernel_xiaomi_violet.git -b surukuu-1.1'
- 		  hardware_tree:
+        default: 'https://github.com/TelegramAt25/device_xiaomi_blossom-kernel.git -b lineage-20'
+      hardware_tree:
         description: 'Kernel Tree Git URL'
         required: true
         default: 'https://github.com/LineageOS/android_hardware_mediatek.git -b lineage-20'
-  		sepolicy_tree:
+      sepolicy_tree:
         description: 'Kernel Tree Git URL'
         required: true
         default: 'https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr.git -b lineage-20'
- jobs:
+jobs:
   build:
     name: Build ROM
     runs-on: ubuntu-latest
@@ -93,10 +93,12 @@ on:
     - name: Clone Device Trees
       run: |
         cd rom
-        git clone ${{ github.event.inputs.device_tree }} device/${{ github.event.inputs.device_codename }}
-        git clone ${{ github.event.inputs.vendor_tree }} vendor/${{ github.event.inputs.device_codename }}
-        git clone ${{ github.event.inputs.kernel_tree }} kernel/${{ github.event.inputs.device_codename }}
-				git clone ${{ github.event.inputs.hardware_tree }} hardware/mideatek
+        git clone ${{ github.event.inputs.device_tree }} device/xiaomi/blossom
+        git clone ${{ github.event.inputs.vendor_tree }} vendor/xiaomi/blossom
+        git clone ${{ github.event.inputs.kernel_tree }} kernel/xiaomi/blossom
+			 git clone ${{ github.event.inputs.kernel_tree }} device/xiaomi/blossom-kernel
+				git clone ${{ github.event.inputs.hardware_tree }} hardware/mediatek
+  				git clone ${{ github.event.inputs.sepolicy_tree }} device/mediatek/sepolicy_vndr
     - name: Generate Changelog
       run: |
         cd rom
@@ -119,8 +121,7 @@ on:
         export USE_CCACHE=1
         ccache -M 50G
         source build/envsetup.sh
-        ${{ github.event.inputs.lunch_combo }}
-        mka bacon -j$(nproc)
+        brunch blossom
 
     - name: Upload to Telegram - Success
       if: success()
@@ -138,7 +139,6 @@ on:
              -F caption="🎯 *${{ github.event.inputs.rom_name }} Build Summary*\n━━━━━━━━━━━━━━━━━━━━\n\
 🏷️ *ROM:* `${{ github.event.inputs.rom_name }}`\n\
 📱 *Device:* `${{ github.event.inputs.device_codename }}` ( ${{ github.event.inputs.device_name }} )\n\
-⚙️ *Variant:* `${{ github.event.inputs.lunch_combo }}`\n\
 📦 *Filename:* \`$FILE\`\n\
 🧩 *Size:* \`$SIZE\`\n\
 🔐 *MD5:* \`$MD5\`\n\
