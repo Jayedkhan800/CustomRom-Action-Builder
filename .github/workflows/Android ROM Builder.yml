@@ -6,11 +6,11 @@ on:
       rom_name:
         description: 'ROM Name (e.g. RisingOS, AfterlifeOS)'
         required: true
-        default: 'AfterlifeOS'
+        default: 'DerpfestOS'
       manifest_url:
         description: 'Manifest Git URL'
         required: true
-        default: 'https://github.com/AfterlifeOS/android_manifest.git'
+        default: 'https://github.com/DerpFest-AOSP/manifest.git'
       manifest_branch:
         description: 'Manifest Branch (e.g. fourteen)'
         required: true
@@ -22,7 +22,7 @@ on:
       device_name:
         description: 'Device Name (e.g. Redmi Note 7 Pro, Realme X7 Max)'
         required: true
-        default: 'Redmi Note 7 Pro'
+        default: 'Blossom'
       lunch_combo:
         description: 'Lunch Combo (e.g. lunch lineage_violet-userdebug)'
         required: true
