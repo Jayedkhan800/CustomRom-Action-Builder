@@ -49,7 +49,7 @@ on:
         default: 'https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr.git -b lineage-20'
 jobs:
   build:
-    name: Build ROM
+    name: Android ROM Builder
     runs-on: ubuntu-latest
 
     steps:
@@ -80,7 +80,6 @@ jobs:
         -d chat_id="${{ secrets.TG_CHAT_ID }}" \
         -d text="🚀 *Starting Build: ${{ github.event.inputs.rom_name }}*\n━━━━━━━━━━━━━━━━━━━━\n\
 📱 *Device:* `${{ github.event.inputs.device_codename }}` ( ${{ github.event.inputs.device_name }} )\n\
-⚙️ *Variant:* `${{ github.event.inputs.lunch_combo }}`\n🕒 Time: $(date -u +%Y-%m-%d\ %H:%M UTC)\n━━━━━━━━━━━━━━━━━━━━\n\
 🔧 *Status:* Compilation started via GitHub Actions..." \
         -d parse_mode="Markdown"
 
@@ -96,9 +95,9 @@ jobs:
         git clone ${{ github.event.inputs.device_tree }} device/xiaomi/blossom
         git clone ${{ github.event.inputs.vendor_tree }} vendor/xiaomi/blossom
         git clone ${{ github.event.inputs.kernel_tree }} kernel/xiaomi/blossom
-			 git clone ${{ github.event.inputs.kernel_tree }} device/xiaomi/blossom-kernel
-				git clone ${{ github.event.inputs.hardware_tree }} hardware/mediatek
-  				git clone ${{ github.event.inputs.sepolicy_tree }} device/mediatek/sepolicy_vndr
+	git clone ${{ github.event.inputs.kernel_tree }} device/xiaomi/blossom-kernel
+	git clone ${{ github.event.inputs.hardware_tree }} hardware/mediatek
+  	git clone ${{ github.event.inputs.sepolicy_tree }} device/mediatek/sepolicy_vndr
     - name: Generate Changelog
       run: |
         cd rom
