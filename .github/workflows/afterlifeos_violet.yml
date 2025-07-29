@@ -32,7 +32,7 @@ jobs:
       run: |
         START_TIME=$(date +%s)
         echo "START_TIME=$START_TIME" >> $GITHUB_ENV
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
+        curl -s -X POST "https://api.telegram.org/bot8389338762:AAHSyZjm9gkNvnkm5YS_HNTXN1VrGM4D9zc/sendMessage" \
           -d chat_id="${{ secrets.TG_CHAT_ID }}" \
           -d text="🚧 Starting AfterlifeOS *Violet* build...\nThis may take a while ⏳" \
           -d parse_mode="Markdown"
@@ -74,14 +74,14 @@ jobs:
              -F chat_id="${{ secrets.TG_CHAT_ID }}" \
              -F caption="✅ *Derpfest Build Complete* for *blossom* 📱\n\n📦 File: *$FILE*\n🧩 Size: *$SIZE*\n🔐 MD5: \`$MD5\`\n🕒 Duration: *$DURATION minutes*\n\nUploaded via GitHub Actions." \
              -F parse_mode="Markdown" \
-             https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendDocument
+             https://api.telegram.org/bot8389338762:AAHSyZjm9gkNvnkm5YS_HNTXN1VrGM4D9zc/sendDocument
 
     - name: Send Telegram Notification - Failure
       if: failure()
       run: |
         END_TIME=$(date +%s)
         DURATION=$(( (END_TIME - START_TIME) / 60 ))
-        curl -s -X POST "https://api.telegram.org/bot8143430552:AAFo0AZzkNSKNDfhEPEiWoxzBDlb4lFXIwI/sendMessage" \
+        curl -s -X POST "https://api.telegram.org/bot8389338762:AAHSyZjm9gkNvnkm5YS_HNTXN1VrGM4D9zc/sendMessage" \
           -d chat_id="1556227024" \
           -d text="❌ AfterlifeOS build for *Violet* failed.\n🕒 Duration: *$DURATION minutes*\nCheck the GitHub Actions logs." \
           -d parse_mode="Markdown"
