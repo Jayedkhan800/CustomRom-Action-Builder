@@ -1,11 +1,11 @@
-name: Build AfterlifeOS for Violet
+name: Build Derpfest for Blossom
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: AfterlifeOS Build for Violet
+    name: Derpfest 
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +42,7 @@ jobs:
         mkdir rom && cd rom
         repo init -u https://github.com/DerpFest-AOSP/manifest.git -b 14
         repo sync -c --no-tags --no-clone-bundle -j$(nproc --all)
-	git clone https://github.com/Jayedkhan800/local_manifests_blossom.git -b Derp_14 .repo/local_manifests
+ 	git clone https://github.com/Jayedkhan800/local_manifests_blossom.git -b Derp_14 .repo/local_manifests
 	repo sync -c --no-tags --no-clone-bundle -j$(nproc --all)
 
     - name: Prepare for build
