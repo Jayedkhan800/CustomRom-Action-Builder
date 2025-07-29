@@ -40,15 +40,10 @@ jobs:
     - name: Initialize AfterlifeOS repo
       run: |
         mkdir rom && cd rom
-        repo init --depth=1 -u https://github.com/AfterlifeOS/android_manifest.git -b 14 --git-lfs
+        repo init -u https://github.com/DerpFest-AOSP/manifest.git -b 14
         repo sync -c --no-tags --no-clone-bundle -j$(nproc --all)
-
-    - name: Clone device tree, vendor, kernel
-      run: |
-        cd rom
-        git clone https://github.com/ChroniX-AOSP/platform_device_xiaomi_violet.git device/xiaomi/violet
-        git clone https://github.com/ChroniX-AOSP/platform_vendor_xiaomi_violet.git vendor/xiaomi/violet
-        git clone https://github.com/ChroniX-AOSP/platform_kernel_xiaomi_violet.git -b surukuu-1.1 kernel/xiaomi/violet
+				git clone https://github.com/Jayedkhan800/local_manifests_blossom.git -b Derp_14 .repo/local_manifests
+				repo sync -c --no-tags --no-clone-bundle -j$(nproc --all)
 
     - name: Prepare for build
       run: |
@@ -58,12 +53,12 @@ jobs:
         export USE_CCACHE=1
         ccache -M 50G
         source build/envsetup.sh
-        lunch goafterlife violet
+        lunch derp_blossom-userdebug
 
     - name: Start build
       run: |
         cd rom
-        mka bacon -j$(nproc --all)
+        mka derp
 
     - name: Upload ROM to Telegram (Success)
       if: success()
@@ -71,14 +66,14 @@ jobs:
         END_TIME=$(date +%s)
         DURATION=$(( (END_TIME - START_TIME) / 60 ))
 
-        cd rom/out/target/product/violet
+        cd rom/out/target/product/blossom
         FILE=$(ls *.zip | head -n 1)
         SIZE=$(du -h "$FILE" | cut -f1)
         MD5=$(md5sum "$FILE" | cut -d ' ' -f1)
 
         curl -F document=@"$FILE" \
              -F chat_id="${{ secrets.TG_CHAT_ID }}" \
-             -F caption="✅ *AfterlifeOS Build Complete* for *Violet* 📱\n\n📦 File: *$FILE*\n🧩 Size: *$SIZE*\n🔐 MD5: \`$MD5\`\n🕒 Duration: *$DURATION minutes*\n\nUploaded via GitHub Actions." \
+             -F caption="✅ *Derpfest Build Complete* for *blossom* 📱\n\n📦 File: *$FILE*\n🧩 Size: *$SIZE*\n🔐 MD5: \`$MD5\`\n🕒 Duration: *$DURATION minutes*\n\nUploaded via GitHub Actions." \
              -F parse_mode="Markdown" \
              https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendDocument
 
