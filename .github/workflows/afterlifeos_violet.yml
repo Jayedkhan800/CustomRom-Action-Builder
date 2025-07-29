@@ -33,7 +33,7 @@ jobs:
         START_TIME=$(date +%s)
         echo "START_TIME=$START_TIME" >> $GITHUB_ENV
         curl -s -X POST "https://api.telegram.org/bot8389338762:AAHSyZjm9gkNvnkm5YS_HNTXN1VrGM4D9zc/sendMessage" \
-          -d chat_id="${{ secrets.TG_CHAT_ID }}" \
+          -d chat_id="-1002526644456" \
           -d text="🚧 Starting AfterlifeOS *Violet* build...\nThis may take a while ⏳" \
           -d parse_mode="Markdown"
 
@@ -82,6 +82,6 @@ jobs:
         END_TIME=$(date +%s)
         DURATION=$(( (END_TIME - START_TIME) / 60 ))
         curl -s -X POST "https://api.telegram.org/bot8389338762:AAHSyZjm9gkNvnkm5YS_HNTXN1VrGM4D9zc/sendMessage" \
-          -d chat_id="1556227024" \
+          -d chat_id="-1002526644456" \
           -d text="❌ AfterlifeOS build for *Violet* failed.\n🕒 Duration: *$DURATION minutes*\nCheck the GitHub Actions logs." \
           -d parse_mode="Markdown"
