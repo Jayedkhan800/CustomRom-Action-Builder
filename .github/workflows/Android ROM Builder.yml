@@ -47,10 +47,16 @@ on:
         description: 'Kernel Tree Git URL'
         required: true
         default: 'https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr.git -b lineage-20'
+      telegram_group_id:
+        description: 'Telegram Group Chat ID (negative, e.g. -1001234567890). Leave empty to use the TG_CHAT_ID secret.'
+        required: false
+        default: ''
 jobs:
   build:
     name: Android ROM Builder
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout
@@ -72,22 +78,34 @@ jobs:
         chmod +x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
+    - name: Setup Telegram Group
+      run: |
+        CHAT_ID="${TG_CHAT_ID:-}"
+        if [ -n "${{ github.event.inputs.telegram_group_id }}" ]; then
+          CHAT_ID="${{ github.event.inputs.telegram_group_id }}"
+        fi
+        echo "TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}" >> "$GITHUB_ENV"
+        echo "TG_CHAT_ID=${CHAT_ID}" >> "$GITHUB_ENV"
+        echo "Telegram configured for group chat."
+
     - name: Notify Telegram - Build Started
       run: |
         START_TIME=$(date +%s)
         echo "START_TIME=$START_TIME" >> $GITHUB_ENV
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
-        -d chat_id="${{ secrets.TG_CHAT_ID }}" \
-        -d text="🚀 *Starting Build: ${{ github.event.inputs.rom_name }}*\n━━━━━━━━━━━━━━━━━━━━\n\
-📱 *Device:* `${{ github.event.inputs.device_codename }}` ( ${{ github.event.inputs.device_name }} )\n\
-🔧 *Status:* Compilation started via GitHub Actions..." \
-        -d parse_mode="Markdown"
+        source .github/scripts/telegram.sh
+        tg_send_md "🚀 *Starting Build: ${{ github.event.inputs.rom_name }}*\n━━━━━━━━━━━━━━━━━━━━\n\
+          📱 *Device:* \`${{ github.event.inputs.device_codename }}\` ( ${{ github.event.inputs.device_name }} )\n\
+          🔧 *Status:* Compilation started via GitHub Actions..."
 
-    - name: Initialize Repo
+    - name: Initialize Repo & Sync
       run: |
+        source .github/scripts/telegram.sh
         mkdir rom && cd rom
         repo init -u ${{ github.event.inputs.manifest_url }} -b ${{ github.event.inputs.manifest_branch }} --depth=1
-        repo sync -c --no-tags --no-clone-bundle -j$(nproc)
+        tg_send_md "🔄 *Repo Sync Started* for \`${{ github.event.inputs.rom_name }}\`...\nSyncing manifest sources, log will follow. 📡"
+        repo sync -c --no-tags --no-clone-bundle -j$(nproc) > /tmp/sync.log 2>&1
+        tg_send_md "✅ *Repo Sync Completed* for \`${{ github.event.inputs.rom_name }}\`.\nAttaching repo sync log below. 📄"
+        tg_stream_file /tmp/sync.log
 
     - name: Clone Device Trees
       run: |
@@ -95,9 +113,9 @@ jobs:
         git clone ${{ github.event.inputs.device_tree }} device/xiaomi/blossom
         git clone ${{ github.event.inputs.vendor_tree }} vendor/xiaomi/blossom
         git clone ${{ github.event.inputs.kernel_tree }} kernel/xiaomi/blossom
-	git clone ${{ github.event.inputs.kernel_tree }} device/xiaomi/blossom-kernel
-	git clone ${{ github.event.inputs.hardware_tree }} hardware/mediatek
-  	git clone ${{ github.event.inputs.sepolicy_tree }} device/mediatek/sepolicy_vndr
+        git clone ${{ github.event.inputs.kernel_tree }} device/xiaomi/blossom-kernel
+        git clone ${{ github.event.inputs.hardware_tree }} hardware/mediatek
+        git clone ${{ github.event.inputs.sepolicy_tree }} device/mediatek/sepolicy_vndr
     - name: Generate Changelog
       run: |
         cd rom
@@ -114,15 +132,23 @@ jobs:
 
     - name: Build ROM
       run: |
+        source .github/scripts/telegram.sh
         cd rom
         export ALLOW_MISSING_DEPENDENCIES=true
         export CCACHE_EXEC=$(which ccache)
         export USE_CCACHE=1
         ccache -M 50G
+        tg_send_md "🔥 *Build Started* for \`${{ github.event.inputs.rom_name }}\`...\nStreaming build log progress to the group. 📡"
+        tg_progress_start /tmp/build.log
+        trap 'tg_progress_stop /tmp/build.log' EXIT
         source build/envsetup.sh
-        brunch blossom
+        set +e
+        brunch blossom > /tmp/build.log 2>&1
+        RC=$?
+        set -e
+        exit $RC
 
-    - name: Upload to Telegram - Success
+    - name: Upload to GitHub Release - Success
       if: success()
       run: |
         END_TIME=$(date +%s)
@@ -132,31 +158,61 @@ jobs:
         SIZE=$(du -h "$FILE" | cut -f1)
         MD5=$(md5sum "$FILE" | cut -d ' ' -f1)
         CHANGELOG=$(tail -n 60 ../../../../changelog.txt | sed 's/`/\\`/g' | head -c 3000)
+        echo "BUILD_FILE=$FILE" >> $GITHUB_ENV
+        echo "BUILD_SIZE=$SIZE" >> $GITHUB_ENV
+        echo "BUILD_MD5=$MD5" >> $GITHUB_ENV
+        echo "BUILD_DURATION=$DURATION" >> $GITHUB_ENV
+        printf '📋 Changelog (Last 7 Days)\n\n%s\n🏷️ ROM: %s\n📱 Device: %s (%s)\n📦 File: %s\n🧩 Size: %s\n🔐 MD5: %s\n⏱️ Build Time: %s minutes\n' \
+          "$CHANGELOG" \
+          "${{ github.event.inputs.rom_name }}" \
+          "${{ github.event.inputs.device_codename }}" \
+          "${{ github.event.inputs.device_name }}" \
+          "$FILE" "$SIZE" "$MD5" "$DURATION" > release_notes.txt
+        echo "RELEASE_NOTES=$(pwd)/release_notes.txt" >> $GITHUB_ENV
+        echo "RELEASE_ZIP=$(pwd)/$FILE" >> $GITHUB_ENV
 
-        curl -F document=@"$FILE" \
-             -F chat_id="${{ secrets.TG_CHAT_ID }}" \
-             -F caption="🎯 *${{ github.event.inputs.rom_name }} Build Summary*\n━━━━━━━━━━━━━━━━━━━━\n\
-🏷️ *ROM:* `${{ github.event.inputs.rom_name }}`\n\
-📱 *Device:* `${{ github.event.inputs.device_codename }}` ( ${{ github.event.inputs.device_name }} )\n\
-📦 *Filename:* \`$FILE\`\n\
-🧩 *Size:* \`$SIZE\`\n\
-🔐 *MD5:* \`$MD5\`\n\
-⏱️ *Build Time:* \`$DURATION minutes\`\n━━━━━━━━━━━━━━━━━━━━\n\
-📝 *Changelog (Last 7 Days)*\n$CHANGELOG\n━━━━━━━━━━━━━━━━━━━━\n\
-✅ *Status:* Build completed successfully via GitHub Actions" \
-             -F parse_mode="Markdown" \
-             https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendDocument
+    - name: Publish GitHub Release
+      if: success()
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: "${{ github.event.inputs.rom_name }}-${{ github.event.inputs.device_codename }}-${{ github.run_id }}"
+        name: "${{ github.event.inputs.rom_name }} for ${{ github.event.inputs.device_name }} (${{ github.event.inputs.device_codename }})"
+        body_path: ${{ env.RELEASE_NOTES }}
+        files: ${{ env.RELEASE_ZIP }}
+        draft: false
+        prerelease: false
+
+    - name: Notify Telegram - Build Success
+      if: success()
+      run: |
+        source .github/scripts/telegram.sh
+        tg_send_md "🎉 *${{ github.event.inputs.rom_name }} Build Successful!*\n━━━━━━━━━━━━━━━━━━━━\n\
+🏷️ *ROM:* \`${{ github.event.inputs.rom_name }}\`\n\
+📱 *Device:* \`${{ github.event.inputs.device_codename }}\` ( ${{ github.event.inputs.device_name }} )\n\
+📦 *File:* \`${BUILD_FILE}\`\n\
+🧩 *Size:* \`${BUILD_SIZE}\`\n\
+🔐 *MD5:* \`${BUILD_MD5}\`\n\
+⏱️ *Build Time:* \`${BUILD_DURATION} minutes\`\n\
+✅ *Status:* Released on GitHub. Check the *Releases* tab."
+        tg_document "/tmp/build.log" "📋 Build log - ${{ github.event.inputs.rom_name }}"
 
     - name: Notify Telegram - Build Failed
       if: failure()
       run: |
         END_TIME=$(date +%s)
         DURATION=$(( (END_TIME - START_TIME) / 60 ))
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
-        -d chat_id="${{ secrets.TG_CHAT_ID }}" \
-        -d text="❌ *${{ github.event.inputs.rom_name }} Build Failed*\n━━━━━━━━━━━━━━━━━━━━\n\
-📱 *Device:* `${{ github.event.inputs.device_codename }}` ( ${{ github.event.inputs.device_name }} )\n\
-⚙️ *Variant:* `${{ github.event.inputs.lunch_combo }}`\n\
+        source .github/scripts/telegram.sh
+        tg_send_md "❌ *${{ github.event.inputs.rom_name }} Build Failed*\n━━━━━━━━━━━━━━━━━━━━\n\
+📱 *Device:* \`${{ github.event.inputs.device_codename }}\` ( ${{ github.event.inputs.device_name }} )\n\
+⚙️ *Variant:* \`${{ github.event.inputs.lunch_combo }}\`\n\
 ⏱️ *Duration:* \`$DURATION minutes\`\n━━━━━━━━━━━━━━━━━━━━\n\
-💥 *Error:* Check GitHub Actions logs for details." \
-        -d parse_mode="Markdown"
+💥 *Error:* Check GitHub Actions logs for details."
+        tg_document "/tmp/build.log" "💥 Build log - ${{ github.event.inputs.rom_name }}"
+
+    - name: Clean Up Runner Workspace
+      if: always()
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        rm -rf rom
+        rm -f /tmp/build.log /tmp/sync.log /tmp/build.log.pos
+        echo "Runner workspace cleaned."
